@@ -1,0 +1,33 @@
+name: Laravel CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, bcmath
+
+      - name: Install dependencies
+        run: composer install --no-dev
+
+      - name: Deploy to server
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USER }}
+        run: |
+          echo "$SSH_KEY" > laravel-key.pem
+          chmod 400 laravel-key.pem
+          ssh -i laravel-key.pem $USER@$HOST "cd /var/www/html/pipeline && git pull origin main && composer install && php artisan migrate"
